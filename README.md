@@ -48,6 +48,34 @@ The app requires the following R packages:
 
 -   plotly
 
+**To run the RShiny app from the Github repository, follow the steps below:**
+
+1.  Clone the repository to your local machine using the following command in your terminal or command prompt:
+
+    **`git clone https://github.com/PallaviSurana1/Ct-Mark-Mut.git`**
+
+2.  Make sure you have R and RStudio installed on your machine.
+
+3.  Open RStudio and set your working directory to the directory where you cloned the repository using the **`setwd()`** function. For example, if you cloned the repository to your desktop, you can set your working directory as follows:
+
+    **`setwd("~/Desktop/Ct-Mark-Mut")`**
+
+4.  Install the required packages by running the following command in your R console:
+
+    **`install.packages(c("shiny", "dplyr"))`**
+
+5.  Load the RShiny library by running the following command in your R console:
+
+    **`library(shiny)`**
+
+6.  Run the app by running the following command in your R console:
+
+    **`runApp("CtMarkMutApp")`**
+
+    This will open the app in a new window in your default web browser.
+
+Note: Before running the app, make sure to check the **`readme.md`** file in the repository to ensure you have the necessary data files in the correct directory.
+
 ### Acknowledgments
 
 This app is based on data from the following sources:
