@@ -70,7 +70,7 @@ The app requires the following R packages:
 
 6.  Run the app by running the following command in your R console:
 
-    **`runApp("CtMarkMutApp")`**
+    **`runApp("Ct-Mark-Mut")`**
 
     This will open the app in a new window in your default web browser.
 
