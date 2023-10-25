@@ -11,15 +11,8 @@
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
-
-setwd("/Users/pallavisurana/Desktop/extra_codes/bmi530/final_app/")
-
-
-##----------------------------------------------------------------------------------------------------------------------------------
-##----------------------------------------------------------------------------------------------------------------------------------
-
 pacman::p_load(httr, jsonlite, dplyr, data.table, shiny, DT, tidyr, janitor, scales, ggplot2, plotly)
-
+setwd("~/Documents/GitHub/Ct-Mark-Mut/")
 
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
@@ -63,11 +56,6 @@ ui <- fluidPage(
       ),
       
       wellPanel(
-        ##-number of pages to show form COSMIC mutation database API call
-        sliderInput("pageInput", "Select page limit for Mutations table:", min = 1, max = 10, value = 2)
-      ),
-      
-      wellPanel(
         ##-Only works when Run is clicked
         actionButton("run", "Show me the mutations in the cell type markers")
       ),
@@ -78,6 +66,9 @@ ui <- fluidPage(
       DTOutput("markerTable"),
       br(), 
       downloadButton("downloadMarkerTable", label = "Download Table"),
+      br(),
+      h3("Select Gene(s) from above Table:"),
+      selectInput("selectedGenes", "Gene(s):", choices = NULL, multiple = TRUE),
       br(),
       br(),
       h3("Mutation Table from COSMIC"),  
@@ -105,7 +96,7 @@ server <- function(input, output, session) {
     choices <- cto_all$cell_type[cto_all$organ == input$organ1]
     updateSelectInput(session, "cell_type1", choices = choices)
   })
-
+  
   
   observeEvent(input$run, {
     
@@ -125,10 +116,16 @@ server <- function(input, output, session) {
       x
     })
     
+    # Observe changes in markerTable and update available genes for selection
+    observe({
+      available_genes <- markers()$official_gene_symbol
+      updateSelectInput(session, "selectedGenes", choices = available_genes)
+    })
+    
     
     ##-genes to query from COSMIC
     gene_query1 <- reactive({
-      markers()$official_gene_symbol
+      input$selectedGenes
     })
     
     
@@ -144,8 +141,10 @@ server <- function(input, output, session) {
     
     
     ##-fetch data using cosmic api
-    fetch_data <- function(gene_nms, page_limit = Inf) {
+    fetch_data <- function(gene_nms, page_limit = 10) {
+      
       all_data <- data.frame()  # initialize an empty data frame
+      
       for (gene in gene_nms) {
         COSMIC_query$terms <- gene
         COSMIC_query$page_size <- 500  # set the page size to the maximum
@@ -155,12 +154,15 @@ server <- function(input, output, session) {
             break  # stop if the page limit has been reached
           }
           COSMIC_query$page <- page
+          
           response <- GET('https://clinicaltables.nlm.nih.gov/api/cosmic/v4/search', query = COSMIC_query)
           data <- content(response, as = "text") %>% fromJSON()
           data.df <- data[[4]] %>% as.data.frame()
+          
           if (nrow(data.df) == 0) {
             break  # stop if there are no more results
           }
+          
           colnames(data.df) <- strsplit(COSMIC_query$df, ",")[[1]]
           all_data <- rbind(all_data, data.df)  # combine the data frames
           page <- page + 1
@@ -172,7 +174,8 @@ server <- function(input, output, session) {
     
     ##-COSMIC mutation data for cell type markers
     cosmic_df <- reactive({
-      fetched_df = fetch_data(gene_query1(), page_limit = input$pageInput)
+      
+      fetched_df = fetch_data(gene_query1(), page_limit = 10)
       fetched_df = fetched_df[!grepl(";", fetched_df$PrimarySite), ]
       fetched_df = fetched_df[!grepl(";", fetched_df$PrimaryHistology), ]
       
@@ -186,13 +189,11 @@ server <- function(input, output, session) {
       ##-merge mutation burden and cosmic fetched data
       merged_Df = merge(fetched_df, mutation_burden, by = "PrimarySite")
       merged_Df$PubmedPMID = NULL
-    
       
       merged_Df$mut_per_mb_Site = -log10(merged_Df$mut_per_mb_Site)
       merged_Df
-
+      
     })
-    
     
     
     output$mutationTable <- renderDT({
@@ -237,7 +238,7 @@ server <- function(input, output, session) {
       }
     )
     
-
+    
     
     ##-mutation burden plot
     output$site_burden_plot <- renderPlotly({
@@ -255,7 +256,7 @@ server <- function(input, output, session) {
               panel.grid.minor = element_blank(),
               axis.line = element_line(colour = "black"),
               axis.ticks = element_line(colour = "black")) 
-        theme_classic()
+      theme_classic()
       
       ##-convert to plotly
       ggplotly(p) %>% layout(xaxis = list(tickangle = 300))  
@@ -265,17 +266,16 @@ server <- function(input, output, session) {
   })
 }
 
-  
+
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
-  
-  
+
+
 ##-Run the app
 shinyApp(ui, server)
-  
-  
+
+
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
 
-  
