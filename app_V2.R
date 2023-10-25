@@ -11,16 +11,22 @@
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
-pacman::p_load(httr, jsonlite, dplyr, data.table, shiny, DT, tidyr, janitor, scales, ggplot2, plotly)
-setwd("~/Documents/GitHub/Ct-Mark-Mut/")
+pacman::p_load(httr, jsonlite, dplyr, readr, curl, data.table, shiny, DT, tidyr, janitor, scales, ggplot2, plotly)
 
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
-panglaoDB_csv = fread("data/PanglaoDB_markers_27_Mar_2020.tsv")
-panglaoDB_csv = panglaoDB_csv %>% unique %>% drop_na() %>% clean_names()
-cto_all = data.frame(panglaoDB_csv$organ, panglaoDB_csv$cell_type) %>% unique
-colnames(cto_all) = c("organ", "cell_type")
+url <- "https://panglaodb.se/markers/PanglaoDB_markers_27_Mar_2020.tsv.gz"
+
+# Read data directly without downloading
+panglaoDB_csv <- read_tsv(url) %>%
+  clean_names() %>%
+  unique() %>%
+  drop_na(c(organ, cell_type, official_gene_symbol))
+
+cto_all <- panglaoDB_csv %>%
+  select(organ, cell_type) %>%
+  unique()
 
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
@@ -28,61 +34,107 @@ colnames(cto_all) = c("organ", "cell_type")
 
 # Define UI
 ui <- fluidPage(
-  titlePanel(div("Ct-Mark-Mut", 
-                 tags$br(),
-                 tags$small("Mutation Data for marker genes of a Cell Type"))
+  
+  titlePanel(
+    h1("Ct-Mark-Mut"),
+    tags$small("Mutation Data for Cell Type Marker Genes")
   ),
+  
   sidebarLayout(
     
     sidebarPanel(
       
       wellPanel(
-        ##-choose an organ 
-        selectInput(inputId = "organ1",
-                    label = "Select an organ:",
-                    choices = unique(cto_all$organ),
-                    selected = NULL),
+        tags$h4("Select Parameters"),
         
-        ##-choose cell type corresponding to the organ
-        selectInput(inputId = "cell_type1",
-                    label = "Select a cell type:",
-                    choices = NULL,
-                    selected = NULL),
+        # Organ Selection
+        selectInput(
+          inputId = "organ1",
+          label = "Organ:",
+          choices = unique(cto_all$organ),
+          selected = NULL
+        ),
         
-        ##-choose organism of interest or all options available
-        checkboxGroupInput("speciesInput", label = "Select species for cell type:", 
-                           choices = list("Hs" = "Hs", "Mm" = "Mm"),
-                           selected = c("Hs","Mm"))
-      ),
+        # Cell Type Selection
+        selectInput(
+          inputId = "cell_type1",
+          label = "Cell Type:",
+          choices = NULL,
+          selected = NULL
+        ),
+        
+        # Organism of Interest Selection
+        checkboxGroupInput(
+          "speciesInput", 
+          label = "Species:", 
+          choices = list("Hs" = "Hs", "Mm" = "Mm"),
+          selected = c("Hs","Mm")
+        ),
+        
+        tags$br(),
+        
+        # Run Button
+        actionButton(
+          "run", 
+          "Retrieve Mutations"
+        )
+      )
       
-      wellPanel(
-        ##-Only works when Run is clicked
-        actionButton("run", "Show me the mutations in the cell type markers")
-      ),
     ),
     
     mainPanel(
-      h3("Marker Table from PanglaoDB for cell type of interest"),  
+      
+      # Marker Table Display
+      tags$h3("Marker Data (PanglaoDB)"),
       DTOutput("markerTable"),
-      br(), 
-      downloadButton("downloadMarkerTable", label = "Download Table"),
-      br(),
-      h3("Select Gene(s) from above Table:"),
-      selectInput("selectedGenes", "Gene(s):", choices = NULL, multiple = TRUE),
-      br(),
-      br(),
-      h3("Mutation Table from COSMIC"),  
+      
+      tags$br(),
+      
+      downloadButton(
+        "downloadMarkerTable", 
+        label = "Download Marker Data"
+      ),
+      
+      tags$br(),
+      tags$hr(),
+      tags$br(),
+      
+      # Gene Selection
+      tags$h3("Select Gene(s) from Marker Table"),
+      selectInput(
+        "selectedGenes", 
+        choices = NULL, 
+        multiple = TRUE
+      ),
+      
+      tags$br(),
+      tags$hr(),
+      tags$br(),
+      
+      # Mutation Table Display
+      tags$h3("Mutation Data (COSMIC)"),
       DTOutput("mutationTable"),
-      br(), 
-      downloadButton("downloadMutationTable", label = "Download Table") ,
-      br(),
-      br(), 
+      
+      tags$br(),
+      
+      downloadButton(
+        "downloadMutationTable", 
+        label = "Download Mutation Data"
+      ),
+      
+      tags$br(),
+      tags$hr(),
+      tags$br(),
+      
+      # Plot Display
+      tags$h3("Site Burden Plot"),
       plotlyOutput("site_burden_plot"),
-      br(),
-      br()
+      tags$br(),
+      tags$hr()
     )
   )
 )
+
 
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
@@ -279,7 +331,4 @@ shinyApp(ui, server)
 ##----------------------------------------------------------------------------------------------------------------------------------
 
 
-<<<<<<< HEAD
-=======
-  
->>>>>>> f4688ad18db5f9001c37e5d271d3f4b3e2f84c3d
+
