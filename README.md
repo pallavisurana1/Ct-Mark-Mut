@@ -1,4 +1,4 @@
-## Ct.Mark.Mut
+## Ct-Mark-Mut
 
 Ct-Mark-Mut is a Shiny app that allows users to explore mutations in marker genes for specific cell types in different species. The app provides access to a list of marker genes for a given cell type, fetched from the PanglaoDB database, and then allows the user to query the COSMIC mutation database for mutations in the selected marker genes.
 
@@ -70,11 +70,29 @@ The app requires the following R packages:
 
 6.  Run the app by running the following command in your R console:
 
-    **`runApp("CtMarkMutApp")`**
+    **`runApp("Ct-Mark-Mut")`**
 
     This will open the app in a new window in your default web browser.
 
 Note: Before running the app, make sure to check the **`readme.md`** file in the repository to ensure you have the necessary data files in the correct directory.
+
+### Functionality
+
+There are some input widgets defined in the sidebarPanel() of the app.
+
+1. selectInput() is used to select an organ of interest from a list of organs.
+2. selectInput() is used to select a cell type of interest from a list of cell types that correspond to the selected organ.
+3. checkboxGroupInput() is used to select the species for which the mutation data is needed.
+4. sliderInput() is used to select the number of pages to be shown in the mutations table.
+5. actionButton() is used to initiate the process to fetch mutations in marker genes.
+
+There are several output widgets defined in the mainPanel() of the app.
+
+1. DTOutput() is used to display the table of marker genes.
+2. downloadButton() is used to download the marker genes table.
+3. DTOutput() is used to display the table of mutations in marker genes.
+4. downloadButton() is used to download the mutations table.
+5. plotlyOutput() is used to display the summary plot of mutations.
 
 ### Acknowledgments
 
