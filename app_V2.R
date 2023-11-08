@@ -103,6 +103,7 @@ ui <- fluidPage(
       tags$h3("Select Gene(s) from Marker Table"),
       selectInput(
         "selectedGenes", 
+        label = "Gene Selection:", 
         choices = NULL, 
         multiple = TRUE
       ),
