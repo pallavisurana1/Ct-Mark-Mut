@@ -13,7 +13,7 @@
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
-pacman::p_load(httr, jsonlite, dplyr, readr, curl, data.table, shiny, DT, tidyr, janitor, scales, ggplot2, pheatmap, plotly)
+pacman::p_load(httr, jsonlite, dplyr, readr, curl, data.table, shiny, shinyjs, DT, tidyr, janitor, scales, ggplot2, pheatmap, plotly)
 
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
@@ -80,99 +80,61 @@ cto_all <- cto_all %>%
 
 
 # Define UI
-# Define UI
 ui <- fluidPage(
+  useShinyjs(),  # Initialize shinyjs
+  tags$head(tags$style(HTML(".well { background-color: #f7f7f7; border: none; padding: 20px; border-radius: 5px; }"))), # Optional: Style wellPanel
   
-  titlePanel(
-    h1("Ct-Mark-Mut"),
-    tags$small("Mutation Data for Cell Type Marker Genes")
+  titlePanel("Ct-Mark-Mut", windowTitle = "Ct-Mark-Mut"),
+  
+  # Horizontal layout for Selection Parameters
+  fluidRow(
+    column(3,
+           selectInput("organ1", "Organ:", choices = unique(cto_all$organ), selected = NULL)
+    ),
+    column(3,
+           selectInput("cell_type1", "Cell Type:", choices = NULL, selected = NULL)
+    ),
+    column(3,
+           checkboxGroupInput("speciesInput", "Species:", choices = list("Hs" = "Hs", "Mm" = "Mm"), selected = c("Hs", "Mm"))
+    ),
+    column(3,
+           actionButton("run", "Retrieve Mutations", class = "btn-primary", style = "width: 100%;")
+    )
   ),
   
-  sidebarLayout(
-    
-    sidebarPanel(
-      
-      wellPanel(
-        tags$h4("Select Parameters"),
-        
-        # Organ Selection
-        selectInput(
-          inputId = "organ1",
-          label = "Organ:",
-          choices = unique(cto_all$organ),
-          selected = NULL
-        ),
-        
-        # Cell Type Selection
-        selectInput(
-          inputId = "cell_type1",
-          label = "Cell Type:",
-          choices = NULL,
-          selected = NULL
-        ),
-        
-        # Organism of Interest Selection
-        checkboxGroupInput(
-          "speciesInput", 
-          label = "Species:", 
-          choices = list("Hs" = "Hs", "Mm" = "Mm"),
-          selected = c("Hs","Mm")
-        ),
-        
-        tags$br(),
-        
-        # Run Button
-        actionButton(
-          "run", 
-          "Retrieve Mutations"
-        )
-      )
-      
+  # Heatmap and Data Display
+  fluidRow(
+    column(4, plotlyOutput("mutationAA_heatmap", height = "300px")),
+    column(4, plotlyOutput("mutationCDS_heatmap", height = "300px")),
+    column(4, plotlyOutput("histology_heatmap", height = "300px"))
+  ),
+  
+  tags$hr(),
+  
+  fluidRow(
+    column(6, 
+           actionButton("viewMarkerData", "View Marker Data", class = "btn-primary", style = "width: 100%;"),
+           hidden(
+             div(
+               id = "markerDataContent",
+               DTOutput("markerTable"),
+               downloadButton("downloadMarkerTable", "Download Marker Data")
+             )
+           )
     ),
-    
-    mainPanel(
-      
-      # Marker Table Display
-      tags$h3("Marker Data (PanglaoDB)"),
-      DTOutput("markerTable"),
-      tags$br(),
-      
-      downloadButton(
-        "downloadMarkerTable", 
-        label = "Download Marker Data"
-      ),
-      tags$br(),
-      tags$hr(),
-      tags$br(),
-      
-      # Mutation Table Display
-      tags$h3("Mutation Data (COSMIC)"),
-      DTOutput("mutationTable"),
-      tags$br(),
-      
-      downloadButton(
-        "downloadMutationTable", 
-        label = "Download Mutation Data"
-      ),
-      tags$br(),
-      tags$hr(),
-      tags$br(),
-      
-      # Amino Acid Mutations Frequency Plot Display
-      tags$h3("Amino Acid Mutations Frequency"),
-      plotlyOutput("mutationAA_plot"),
-      tags$br(),
-      tags$hr(),
-      tags$br(),
-      
-      # Coding DNA Sequence Mutations Frequency Plot Display
-      tags$h3("Coding DNA Sequence Mutations Frequency"),
-      plotlyOutput("mutationCDS_plot"),
-      tags$br(),
-      tags$hr()
+    column(6,
+           actionButton("viewMutationData", "View Mutation Data", class = "btn-primary", style = "width: 100%;"),
+           hidden(
+             div(
+               id = "mutationDataContent",
+               DTOutput("mutationTable"),
+               downloadButton("downloadMutationTable", "Download Mutation Data")
+             )
+           )
     )
   )
 )
+
 
 
 ##----------------------------------------------------------------------------------------------------------------------------------

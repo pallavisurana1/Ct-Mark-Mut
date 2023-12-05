@@ -4,6 +4,68 @@
 ##----------------------------------------------------------------------------------------------------------------------------------
 ##----------------------------------------------------------------------------------------------------------------------------------
 
+classify_mutation <- function(mutation) {
+  if (grepl("^c\\.\\d+[ACGT]>[ACGT]", mutation)) {
+    # Point mutations (substitutions)
+    return("Point Mutation")
+  } else if (grepl("del", mutation)) {
+    # Deletions
+    return("Deletion")
+  } else if (grepl("ins", mutation)) {
+    # Insertions
+    return("Insertion")
+  } else if (grepl("^c\\.\\d+\\+\\d+", mutation) || grepl("^c\\.\\d+\\-\\d+", mutation)) {
+    # Splice site mutations
+    return("Splice Site Mutation")
+  } else if (grepl("dup", mutation)) {
+    # Duplications
+    return("Duplication")
+  } else if (grepl("\\*", mutation)) {
+    # Mutations at the stop codon
+    return("Stop Codon Mutation")
+  } else if (grepl("c\\.\\-\\d+", mutation)) {
+    # Promoter region mutations
+    return("Promoter Mutation")
+  } else if (grepl("c\\.\\*\\d+", mutation)) {
+    # Mutations in the untranslated region (UTR)
+    return("UTR Mutation")
+  } else if (grepl("c\\.[\\d_]+[ACGT]+>[ACGT]+", mutation)) {
+    # Complex substitutions
+    return("Complex Substitution")
+  } else if (grepl("c\\.[\\d_]+del[ACGT]+", mutation)) {
+    # Deletions of specific nucleotides
+    return("Specific Deletion")
+  } else if (grepl("c\\.[\\d_]+ins[ACGT]+", mutation)) {
+    # Insertions of specific nucleotides
+    return("Specific Insertion")
+  } else {
+    # Other or unspecified mutations
+    return("Other or Unspecified")
+  }
+}
+
+classify_amino_acid_mutation <- function(mutation) {
+  if (grepl("fs", mutation)) {
+    return("Frameshift")
+  } else if (grepl("\\*", mutation)) {
+    return("Nonsense")
+  } else if (grepl("=", mutation)) {
+    return("Silent")
+  } else if (grepl("[A-Z]\\d+[A-Z]", mutation) && !grepl("del|ins", mutation)) {
+    return("Missense")
+  } else if (grepl("del", mutation) && !grepl("fs", mutation)) {
+    return("In-Frame Deletion")
+  } else if (grepl("ins", mutation) && !grepl("fs", mutation)) {
+    return("In-Frame Insertion")
+  } else {
+    return("Other or Unspecified")
+  }
+}
+
+
+##----------------------------------------------------------------------------------------------------------------------------------
+##----------------------------------------------------------------------------------------------------------------------------------
+
 
 # Define server 
 server <- function(input, output, session) {
@@ -161,53 +223,94 @@ server <- function(input, output, session) {
       }
     )
     
-    output$mutationAA_plot <- renderPlotly({
-      cosmic_data <- cosmic_df()  
+    ##-AA plot
+    output$mutationAA_heatmap <- renderPlotly({
+      cosmic_data <- cosmic_df()
       
       aa_mutation_counts <- cosmic_data %>%
-        group_by(MutationAA, GeneName) %>%
-        summarise(Frequency = n()) %>%
-        ungroup() %>%
-        arrange(desc(Frequency))
+        as.data.frame() %>%
+        group_by(GeneName, MutationAA) %>%
+        summarise(n = n(), .groups = 'drop') %>%
+        pivot_wider(names_from = MutationAA, values_from = n, values_fill = list(n = 0))
       
-      p_aa <- ggplot(aa_mutation_counts, aes(x = MutationAA, y = Frequency, fill = GeneName)) +
-        geom_bar(stat = "identity") +
-        labs(title = "Frequency of Amino Acid Mutations",
-             x = "Amino Acid Mutation",
-             y = "Frequency") +
-        scale_fill_brewer(palette = "Set1") +
-        theme_minimal() +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
-              legend.title = element_blank())
+      # Convert to a matrix for the heatmap
+      aa_mutation_matrix <- as.matrix(aa_mutation_counts[-1])
+      rownames(aa_mutation_matrix) <- aa_mutation_counts$GeneName
+      heatmap_data1 <- reshape2::melt(aa_mutation_matrix)
+      heatmap_data1 = heatmap_data1 %>% mutate(Classification = sapply(Var2, classify_amino_acid_mutation))
       
-      ggplotly(p_aa)
+      plot_ly(data = heatmap_data1, x = ~Classification, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
+        layout(
+          title = "Amino Acid Mutation",
+          xaxis = list(title = " "),  # Custom X-axis label
+          yaxis = list(title = " "),  # Custom Y-axis label
+          colorbar = list(title = "Value")
+        ) 
+      
     })
     
-    
-    output$mutationCDS_plot <- renderPlotly({
-      cosmic_data <- cosmic_df()  
+    ##-cds plot
+    output$mutationCDS_heatmap <- renderPlotly({
+      cosmic_data <- cosmic_df()
       
+      # Count the frequency of each MutationCDS for each gene
       cds_mutation_counts <- cosmic_data %>%
-        group_by(MutationCDS, GeneName) %>%
-        summarise(Frequency = n()) %>%
-        ungroup() %>%
-        arrange(desc(Frequency))
+        as.data.frame() %>%
+        group_by(GeneName, MutationCDS) %>%
+        summarise(n = n(), .groups = 'drop') %>%
+        pivot_wider(names_from = MutationCDS, values_from = n, values_fill = list(n = 0))
       
-      p_cds <- ggplot(cds_mutation_counts, aes(x = MutationCDS, y = Frequency, fill = GeneName)) +
-        geom_bar(stat = "identity") +
-        labs(title = "Frequency of Coding DNA Sequence Mutations",
-             x = "Coding DNA Sequence Mutation",
-             y = "Frequency") +
-        scale_fill_brewer(palette = "Set1") +
-        theme_minimal() +
-        theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
-              legend.title = element_blank())
+      # Convert to a matrix for the heatmap
+      cds_mutation_matrix <- as.matrix(cds_mutation_counts[-1])
+      rownames(cds_mutation_matrix) <- cds_mutation_counts$GeneName
+      heatmap_data <- reshape2::melt(cds_mutation_matrix)
+      heatmap_data = heatmap_data %>% mutate(Classification = sapply(Var2, classify_mutation))
       
-      ggplotly(p_cds)
+      # Create the heatmap
+      plot_ly(data = heatmap_data, x = ~Classification, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
+        layout(
+          title = "Coding Site Mutation",
+          xaxis = list(title = " "),  # Custom X-axis label
+          yaxis = list(title = " "),  # Custom Y-axis label
+          colorbar = list(title = "Value")
+        ) 
     })
     
-  
+    ##-primary histology
+    output$histology_heatmap <- renderPlotly({
+      cosmic_data <- cosmic_df()
+      
+      # Count the frequency of each MutationCDS for each gene
+      mutation_counts <- cosmic_data %>%
+        as.data.frame() %>%
+        group_by(GeneName, PrimaryHistology) %>%
+        summarise(n = n(), .groups = 'drop') %>%
+        pivot_wider(names_from = PrimaryHistology, values_from = n, values_fill = list(n = 0))
+      
+      # Convert to a matrix for the heatmap
+      mutation_counts_matrix <- as.matrix(mutation_counts[-1])
+      rownames(mutation_counts_matrix) <- mutation_counts$GeneName
+      heatmap_data2 <- reshape2::melt(mutation_counts_matrix)
+
+      # Create the heatmap
+      plot_ly(data = heatmap_data2, x = ~Var2, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
+        layout(
+          title = "Primary Histology",
+          xaxis = list(title = " "),  # Custom X-axis label
+          yaxis = list(title = " "),  # Custom Y-axis label
+          colorbar = list(title = "Value")
+        ) 
+    })
     
+    
+    observeEvent(input$viewMarkerData, {
+      shinyjs::toggle("markerDataContent")
+    })
+    
+    observeEvent(input$viewMutationData, {
+      shinyjs::toggle("mutationDataContent")
+    })
+  
   })
 }
 

@@ -194,7 +194,7 @@ server <- function(input, output, session) {
     
     
     ##-fetch data using cosmic api
-    fetch_data <- function(gene_nms, page_limit = 10) {
+    fetch_data <- function(gene_nms, page_limit = 100) {
       
       all_data <- data.frame()  # initialize an empty data frame
       
@@ -228,7 +228,7 @@ server <- function(input, output, session) {
     ##-COSMIC mutation data for cell type markers
     cosmic_df <- reactive({
       
-      fetched_df = fetch_data(gene_query1(), page_limit = 10)
+      fetched_df = fetch_data(gene_query1(), page_limit = 100)
       fetched_df = fetched_df[!grepl(";", fetched_df$PrimarySite), ]
       fetched_df = fetched_df[!grepl(";", fetched_df$PrimaryHistology), ]
       
