@@ -70,26 +70,23 @@ Note: Before running the app, make sure to check the **`readme.md`** file in the
 
 There are some input widgets defined in the sidebarPanel() of the app.
 
-1. selectInput() is used to select an organ of interest from a list of organs.
-2. selectInput() is used to select a cell type of interest from a list of cell types that correspond to the selected organ.
-3. checkboxGroupInput() is used to select the species for which the mutation data is needed.
-4. sliderInput() is used to select the number of pages to be shown in the mutations table.
-5. actionButton() is used to initiate the process to fetch mutations in marker genes.
+1. `selectInput()` is used to select an organ of interest from a list of organs.
+2. `selectInput()` is used to select a cell type of interest from a list of cell types that correspond to the selected organ.
+3. `checkboxGroupInput()` is used to select the species for which the mutation data is needed.
+4. `actionButton()` is used to initiate the process to fetch mutations in marker genes.
 
-There are several output widgets defined in the mainPanel() of the app.
+There are several output widgets defined in the `ui.R` code.
 
-1. DTOutput() is used to display the table of marker genes.
-2. downloadButton() is used to download the marker genes table.
-3. DTOutput() is used to display the table of mutations in marker genes.
-4. downloadButton() is used to download the mutations table.
-5. plotlyOutput() is used to display the summary plot of mutations.
+1. `plotlyOutput()` is used to display the Amino Acid Mutation heatmap.
+2. `plotlyOutput()` is used to display the CDS Region Mutation heatmap.
+3. `plotlyOutput()` is used to display the Primary Histology heatmap.
+4. `actionButton()` is used to view the marker gene data.
+5. `actionButton()` is used to view the mutation data.
+6. Loading pop-up messages are displayed during data processing.
+7. Log messages are displayed in a well panel.
 
 ### Acknowledgments
 
 This app is based on data from the following sources:
 
-The PanglaoDB database The COSMIC database
-
-### Contributors
-
-The app was developed by Pallavi Surana.
+The PanglaoDB database The COSMIC v4 database
