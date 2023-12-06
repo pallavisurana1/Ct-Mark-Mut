@@ -40,7 +40,7 @@ classify_mutation <- function(mutation) {
     return("Specific Insertion")
   } else {
     # Other or unspecified mutations
-    return("Other or Unspecified")
+    return("Other")
   }
 }
 
@@ -58,7 +58,7 @@ classify_amino_acid_mutation <- function(mutation) {
   } else if (grepl("ins", mutation) && !grepl("fs", mutation)) {
     return("In-Frame Insertion")
   } else {
-    return("Other or Unspecified")
+    return("Other")
   }
 }
 
@@ -69,6 +69,22 @@ classify_amino_acid_mutation <- function(mutation) {
 
 # Define server 
 server <- function(input, output, session) {
+
+  log_messages <- reactiveVal(character(0))
+  shinyjs::toggle("loadingPopup", anim = FALSE)
+  Sys.sleep(3)
+  
+  ##-Function to add a log message
+  add_log_message <- function(message) {
+    current_messages <- log_messages()
+    updated_messages <- c(current_messages, message)
+    log_messages(updated_messages)
+  }
+  
+  ##-Function to update loading popup message
+  update_loading_message <- function(message) {
+    shinyjs::html("loadingPopup", message)
+  }
   
   ##-pick the organ and cell type of interest from user
   observeEvent(input$organ1, {
@@ -86,6 +102,13 @@ server <- function(input, output, session) {
   
   observeEvent(input$run, {
     
+    add_log_message("Retrieve Mutations button clicked")
+    Sys.sleep(3)
+    
+    shinyjs::toggle("loadingPopup", anim = TRUE)
+    update_loading_message("Loading data, please wait...")
+    Sys.sleep(3)
+    
     ##-get cell type marker information from panglaoDb 
     markers <- reactive({
       x = panglaoDB_csv  %>% subset(organ == input$organ1) %>% subset(cell_type == input$cell_type1)
@@ -102,12 +125,9 @@ server <- function(input, output, session) {
       x
     })
     
-    
     ##-genes to query from COSMIC
     # markers()$official_gene_symbol
-    
-    
-    
+
     ##- used the COSMIC v4 API here
     ##- query data for one gene from cosmic
     COSMIC_query <- list(
@@ -121,31 +141,24 @@ server <- function(input, output, session) {
     
     ##-fetch data using cosmic api
     fetch_data <- function(gene_nms, page_limit = 10) {
-      
       all_data <- data.frame()  # initialize an empty data frame
-      
       for (gene in gene_nms) {
         COSMIC_query$terms <- gene
         COSMIC_query$page_size <- 500  # set the page size to the maximum
         page <- 1
-        
         while (TRUE) {
           if (page > page_limit) {
             break  # stop if the page limit has been reached
           }
-          
           COSMIC_query$page <- page
           response <- GET('https://clinicaltables.nlm.nih.gov/api/cosmic/v4/search', query = COSMIC_query)
           data <- content(response, as = "text") %>% fromJSON()
           data.df <- data[[4]] %>% as.data.frame()
-          
           if (nrow(data.df) == 0) {
             break  # stop if there are no more results
           }
-          
           colnames(data.df) <- strsplit(COSMIC_query$df, ",")[[1]]
           all_data <- rbind(all_data, data.df)  # combine the data frames
-          
           all_data = all_data %>% as.data.frame %>% 
                                   dplyr::filter(PrimarySite %in% reactive_cosmic_tissue()) %>% 
                                   as.data.frame
@@ -180,7 +193,6 @@ server <- function(input, output, session) {
       
     })
     
-    
     output$mutationTable <- renderDT({
       if (nrow(cosmic_df()) > 0) {
         cosmic_df() %>%
@@ -189,6 +201,8 @@ server <- function(input, output, session) {
           DT::datatable(., options = list(scrollX = TRUE, scrollY = "200px", pageLength = -1, dom = 't'))
       } else {
         stop("No mutation data found for marker genes for organism of interest")
+        add_log_message("No mutations found")
+        Sys.sleep(3)
       }
     })
     
@@ -202,6 +216,8 @@ server <- function(input, output, session) {
           DT::datatable(., options = list(scrollX = TRUE, scrollY = "200px", pageLength = -1, dom = 't'))
       } else {
         stop("No markers found for cell type chosen in the organism of interest")
+        add_log_message("No markers found")
+        Sys.sleep(3)
       }
     })
     
@@ -224,6 +240,9 @@ server <- function(input, output, session) {
     )
     
     ##-AA plot
+    add_log_message("Data processing and plot generation started")
+    Sys.sleep(3)
+    
     output$mutationAA_heatmap <- renderPlotly({
       cosmic_data <- cosmic_df()
       
@@ -242,10 +261,9 @@ server <- function(input, output, session) {
       plot_ly(data = heatmap_data1, x = ~Classification, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
         layout(
           title = "Amino Acid Mutation",
-          xaxis = list(title = " "),  # Custom X-axis label
-          yaxis = list(title = " "),  # Custom Y-axis label
-          colorbar = list(title = "Value")
-        ) 
+          xaxis = list(title = " ",
+                       tickangle = 45),  # Custom X-axis label
+          yaxis = list(title = " "))
       
     })
     
@@ -270,10 +288,10 @@ server <- function(input, output, session) {
       plot_ly(data = heatmap_data, x = ~Classification, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
         layout(
           title = "Coding Site Mutation",
-          xaxis = list(title = " "),  # Custom X-axis label
-          yaxis = list(title = " "),  # Custom Y-axis label
-          colorbar = list(title = "Value")
-        ) 
+          xaxis = list(title = " ",
+                       tickangle = 45),  # Custom X-axis label
+          yaxis = list(title = " "))
+      
     })
     
     ##-primary histology
@@ -296,12 +314,14 @@ server <- function(input, output, session) {
       plot_ly(data = heatmap_data2, x = ~Var2, y = ~Var1, z = ~value, type = "heatmap",  colors = "Blues") %>%
         layout(
           title = "Primary Histology",
-          xaxis = list(title = " "),  # Custom X-axis label
-          yaxis = list(title = " "),  # Custom Y-axis label
-          colorbar = list(title = "Value")
-        ) 
+          xaxis = list(title = " ",
+                       tickangle = 45),  # Custom X-axis label
+          yaxis = list(title = " "))
+       
     })
     
+    add_log_message("Data processing and plot generation completed")
+    Sys.sleep(3)
     
     observeEvent(input$viewMarkerData, {
       shinyjs::toggle("markerDataContent")

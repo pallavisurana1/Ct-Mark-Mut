@@ -82,23 +82,30 @@ cto_all <- cto_all %>%
 # Define UI
 ui <- fluidPage(
   useShinyjs(),  # Initialize shinyjs
-  tags$head(tags$style(HTML(".well { background-color: #f7f7f7; border: none; padding: 20px; border-radius: 5px; }"))), # Optional: Style wellPanel
+  tags$head(tags$style(
+    HTML(".well { background-color: #f7f7f7; border: none; padding: 20px; border-radius: 5px; }"),
+    HTML("#loadingPopup { position: absolute; top: 10px; right: 10px; background-color: #ffffff; padding: 10px; border: 1px solid #ccc; border-radius: 5px; }"))
+  ),
   
   titlePanel("Ct-Mark-Mut", windowTitle = "Ct-Mark-Mut"),
   
   # Horizontal layout for Selection Parameters
-  fluidRow(
-    column(3,
-           selectInput("organ1", "Organ:", choices = unique(cto_all$organ), selected = NULL)
+  wellPanel(
+    fluidRow(
+      column(4,
+             selectInput("organ1", "Organ:", choices = unique(cto_all$organ), selected = NULL)
+      ),
+      column(4,
+             selectInput("cell_type1", "Cell Type:", choices = NULL, selected = NULL)
+      ),
+      column(4,
+             checkboxGroupInput("speciesInput", "Species:", choices = list("Hs" = "Hs", "Mm" = "Mm"), selected = c("Hs", "Mm"))
+      )
     ),
-    column(3,
-           selectInput("cell_type1", "Cell Type:", choices = NULL, selected = NULL)
-    ),
-    column(3,
-           checkboxGroupInput("speciesInput", "Species:", choices = list("Hs" = "Hs", "Mm" = "Mm"), selected = c("Hs", "Mm"))
-    ),
-    column(3,
-           actionButton("run", "Retrieve Mutations", class = "btn-primary", style = "width: 100%;")
+    fluidRow(
+      column(12,
+             actionButton("run", "Retrieve Mutations", class = "btn-primary", style = "width: 100%;")
+      )
     )
   ),
   
@@ -118,7 +125,10 @@ ui <- fluidPage(
              div(
                id = "markerDataContent",
                DTOutput("markerTable"),
-               downloadButton("downloadMarkerTable", "Download Marker Data")
+               div(
+                 style = "display: flex; justify-content: center;",
+                 downloadButton("downloadMarkerTable", "Download Marker Data")
+               )
              )
            )
     ),
@@ -128,12 +138,31 @@ ui <- fluidPage(
              div(
                id = "mutationDataContent",
                DTOutput("mutationTable"),
-               downloadButton("downloadMutationTable", "Download Mutation Data")
+               div(
+                 style = "display: flex; justify-content: center;",
+                 downloadButton("downloadMutationTable", "Download Mutation Data")
+               )
              )
            )
+    ),
+    # Loading popup (initially hidden)
+    div(
+      id = "loadingPopup",
+      class = "well",
+      style = "display: none;",
+      "Loading data, please wait..."
     )
+  ),
+  
+  # Log messages display
+  div(
+    id = "logMessages",
+    class = "well",
+    style = "display: none;",
+    tags$ul()
   )
 )
+
 
 
 
