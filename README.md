@@ -12,40 +12,30 @@ To use the app, follow these steps:
 
 3.  Choose one or more species from the check-box options to display mutations for the selected species.
 
-4.  Set the number of pages you want to fetch from COSMIC. The number of mutations displayed will depend on the page limit.
+4.  Click the "Retrieve mutations" button to fetch mutations in the selected marker genes.
 
-5.  Click the "Show me the mutations in the cell type markers" button to fetch mutations in the selected marker genes.
+6.  The app will display plots for Amino Acid and CDS region mutations in the data followed by optional viewing and downloading of tables.
 
-6.  The app will display a table of the selected marker genes from PanglaoDB, followed by a table of mutations in the marker genes from COSMIC.
+7.  You can also download the tables by clicking the "Download Table" button once "View..." is clicked on.
 
-7.  You can also download the tables by clicking the "Download Table" button.
-
-8.  Finally, a summary plot of the mutation burden is displayed at the bottom of the page.
 
 ### Requirements
 
 The app requires the following R packages:
 
 -   httr
-
 -   jsonlite
-
 -   dplyr
-
 -   data.table
-
+-   readr
 -   shiny
-
+-   shinyjs
 -   DT
-
 -   tidyr
-
 -   janitor
-
 -   scales
-
 -   ggplot2
-
+-   pheatmap
 -   plotly
 
 **To run the RShiny app from the Github repository, follow the steps below:**
@@ -58,7 +48,7 @@ The app requires the following R packages:
 
 3.  Open RStudio and set your working directory to the directory where you cloned the repository using the **`setwd()`** function. For example, if you cloned the repository to your desktop, you can set your working directory as follows:
 
-    **`setwd("~/Desktop/Ct-Mark-Mut")`**
+    **`setwd("~/path/to/download/Ct-Mark-Mut")`**
 
 4.  Install the required packages by running the following command in your R console:
 
